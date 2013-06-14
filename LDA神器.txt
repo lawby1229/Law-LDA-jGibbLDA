@@ -1,0 +1,20 @@
+LDA [options ...] [arguments...]
+ -alpha N     : Specify alpha
+ -beta N      : Specify beta
+ -dfile VAL   : Specify data file
+ -dir VAL     : Specify directory
+ -est         : Specify whether we want to estimate model from scratch
+ -estc        : Specify whether we want to continue the last estimation
+ -inf         : Specify whether we want to do inference
+ -model VAL   : Specify the model name
+ -niters N    : Specify the number of iterations
+ -ntopics N   : Specify the number of topics
+ -savestep N  : Specify the number of steps to save the model since the last sav
+                e
+ -twords N    : Specify the number of most likely words to be printed for each t
+                opic
+ -withrawdata : Specify whether we include raw data in the input
+ -wordmap VAL : Specify the wordmap file
+
+ 
+ 
