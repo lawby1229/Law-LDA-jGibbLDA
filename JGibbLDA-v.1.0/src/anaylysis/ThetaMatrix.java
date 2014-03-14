@@ -5,10 +5,13 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.LineNumberReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+
+import javax.swing.event.ListSelectionEvent;
 
 public class ThetaMatrix {
 	private String thetaFileName;
@@ -16,9 +19,10 @@ public class ThetaMatrix {
 	List<List<Double>> Matrix;
 	List<String> ldaVersion;// 存储每一个手机型号的
 	List<Integer> ldaVersionTopic;// 存储每一个手机型号对应的topic的标示符的
-	List<List<Double>> clusterCenter; // 存储每一个类的中心点的
+	// List<List<Double>> clusterCenter; // 存储每一个类的中心点的
 	List<Integer> ldaVersionCluster;// 存储每一个手机型号对应的topic的类别的
 	HashMap<String, Integer> Version2Topic;
+	KmeansAdapter kmean;
 
 	public ThetaMatrix(String thetaFile) {
 		this.setThetaFileName(thetaFile);
@@ -133,6 +137,13 @@ public class ThetaMatrix {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		setVersion2TopicFromThetaMatrix(ramainRate);
+		// 利用kmeans分类
+		// setVersion2TopicFromCCenter(4);
+
+	}
+
+	private void setVersion2TopicFromThetaMatrix(double ramainRate) {
 		ldaVersionTopic = new ArrayList<Integer>();
 		Version2Topic = new HashMap<String, Integer>();
 		for (int i = 0; i < Matrix.size(); i++) {
@@ -150,6 +161,18 @@ public class ThetaMatrix {
 				ldaVersionTopic.add(index);
 			}
 
+		}
+	}
+
+	private void setVersion2TopicFromCCenter(int k) {
+		double[][] a = ArrayListFuncs.doubleList2Array(Matrix);
+		kmean = new KmeansAdapter(k, a);
+		kmean.Kmeans();
+		ldaVersionTopic = new ArrayList<Integer>();
+		Version2Topic = new HashMap<String, Integer>();
+		for (int i = 0; i < kmean.dataCenterlabel.length; i++) {
+			Version2Topic.put(ldaVersion.get(i), kmean.dataCenterlabel[i]);
+			ldaVersionTopic.add(kmean.dataCenterlabel[i]);
 		}
 	}
 

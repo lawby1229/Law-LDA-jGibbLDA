@@ -5,3 +5,9 @@ JGibbLDA-v.1.0/models
 *.ear
 *.txt
 *.class
+*.twords
+*.tassign
+*.theta
+*.others
+*.phi
+*.csv

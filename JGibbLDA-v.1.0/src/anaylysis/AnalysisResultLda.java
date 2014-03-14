@@ -4,6 +4,8 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.LineNumberReader;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -67,11 +69,16 @@ public class AnalysisResultLda {
 				double maxCosValue = Double.NEGATIVE_INFINITY;// 最大相似度的值
 				double secCosValue = Double.NEGATIVE_INFINITY;
 				// 当前用户和每一个话题的host分布算相似度，保存最大的值到maxCosValue，下标到maxCosIndex
-				for (int j = 0; j < phi.size(); j++) {
-					// 得到j这个topic和userfeature这个用户的相似度
+				List<List<Double>> centerHostMatrix = phi;
+				// 需要根据词的分布来判断哪些文章会出现该话题
+				// 需要通过userFeature找到topic的k个维度的系数作为
+				// *******************用kmeans就不注释，不用就注释
+				// centerHostMatrix = multiMatrix(tMatrix.kmean.centers, phi);
+				// 得到j这个topic和userfeature这个用户的相似度
+				for (int j = 0; j < centerHostMatrix.size(); j++) {
 					double cosValue;
-					cosValue = getCosListHah(phi.get(j), phiMol[j], userFeature);
-					// cosValue = -getEuroDisListHash(phi.get(j), userFeature);
+					cosValue = getCosListHash(centerHostMatrix.get(j),
+							getMol(centerHostMatrix.get(j)), userFeature);
 					if (cosValue > maxCosValue) {
 						secCosIndex = maxCosIndex;
 						secCosValue = maxCosValue;
@@ -81,6 +88,7 @@ public class AnalysisResultLda {
 						secCosIndex = j;
 						secCosValue = cosValue;
 					}
+
 				}
 				// 获取这个用户的真实手机在训练模型中的topic和算出来的topic比较是否相等，相等就+1
 				// if (i < 30)
@@ -96,14 +104,14 @@ public class AnalysisResultLda {
 				// continue;
 				int UserIndex = version2topic.get(uMobileUser.testVersion
 						.get(i));
-				//该手机训练数据集没有
+				// 该手机训练数据集没有
 				if (UserIndex == -1)
 					continue;
 				topicSum[UserIndex]++;
 				sumOfUser++;
-				if (UserIndex == maxCosIndex 
-//						|| UserIndex == secCosIndex
-						) {
+				if (UserIndex == maxCosIndex
+				// || UserIndex == secCosIndex
+				) {
 					correctUser++;
 					topicCorrect[UserIndex]++;
 					// System.out.println(uMobileUser.testVersion.get(i));
@@ -127,7 +135,7 @@ public class AnalysisResultLda {
 	}
 
 	// 计算两个向量的相似度，cos,两个向量的点乘，除以各自的mol的乘积
-	private double getCosListHah(List<Double> list, double listMol,
+	private double getCosListHash(List<Double> list, double listMol,
 			HashMap<Integer, Double> hash) {
 		double re = 0;
 		re = getPointMulti(list, hash) / (listMol * getMol(hash));
@@ -149,7 +157,7 @@ public class AnalysisResultLda {
 		Iterator<Double> itValue = hash.values().iterator();
 		double squrSum = 0;
 		while (itValue.hasNext())
-			squrSum = squrSum + Math.pow(itValue.next(), 2.0);
+			squrSum = squrSum + Math.pow(itValue.next(), 2);
 		return Math.sqrt(squrSum);
 	}
 
@@ -169,6 +177,26 @@ public class AnalysisResultLda {
 			re = re + list.get(key) * hash.get(key);
 		}
 		return re;
+	}
+
+	private List<List<Double>> multiMatrix(double[][] d, List<List<Double>> l) {
+		double[][] re = multiMatrix(d, ArrayListFuncs.doubleList2Array(l));
+		return ArrayListFuncs.doubleArray2List(re);
+	}
+
+	private double[][] multiMatrix(double[][] m, double[][] n) {
+		double[][] result = new double[m.length][n[0].length];
+		for (int i = 0; i < m.length; i++) {
+			for (int k = 0; k < n[0].length; k++) {
+				double sum = 0;
+				for (int j = 0; j < m[0].length; j++) {
+					sum += m[i][j] * n[j][k];
+				}
+				result[i][k] = sum;
+			}
+		}
+
+		return result;
 	}
 
 	public static void main(String arg[]) {
