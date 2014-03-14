@@ -14,8 +14,10 @@ public class ThetaMatrix {
 	private String thetaFileName;
 	private String ldaVersionFileName;
 	List<List<Double>> Matrix;
-	List<String> ldaVersion;
-	List<Integer> ldaVersionTopic;
+	List<String> ldaVersion;// 存储每一个手机型号的
+	List<Integer> ldaVersionTopic;// 存储每一个手机型号对应的topic的标示符的
+	List<List<Double>> clusterCenter; // 存储每一个类的中心点的
+	List<Integer> ldaVersionCluster;// 存储每一个手机型号对应的topic的类别的
 	HashMap<String, Integer> Version2Topic;
 
 	public ThetaMatrix(String thetaFile) {
@@ -116,10 +118,10 @@ public class ThetaMatrix {
 	/**
 	 * 获取每行theta中matrix对应的手机型号,保存到versions中
 	 */
-	public void readLdaVersion() {
+	public void readLdaVersion(String LdaVersionFileName, double ramainRate) {
 		try {
 			LineNumberReader lnr = new LineNumberReader(new FileReader(
-					this.getLdaVersionFileName()));
+					LdaVersionFileName));
 			List matrix = this.getMatrix();
 			ldaVersion = new ArrayList<String>();
 			String line = lnr.readLine();
@@ -132,13 +134,22 @@ public class ThetaMatrix {
 			e.printStackTrace();
 		}
 		ldaVersionTopic = new ArrayList<Integer>();
+		Version2Topic = new HashMap<String, Integer>();
 		for (int i = 0; i < Matrix.size(); i++) {
-			List row = Matrix.get(i);
+			List<Double> row = Matrix.get(i);
 
 			// 得到該行最大的概率值，返回index下标
 			int index = getMaxIndex(row);
-			Version2Topic.put(ldaVersion.get(i), index);
-			ldaVersionTopic.add(index);
+
+			// 训练后该手机概率小于指标的话，就否定该手机属于该话题
+			if (row.get(index) < ramainRate) {
+				Version2Topic.put(ldaVersion.get(i), -1);
+				ldaVersionTopic.add(-1);
+			} else {
+				Version2Topic.put(ldaVersion.get(i), index);
+				ldaVersionTopic.add(index);
+			}
+
 		}
 	}
 
@@ -158,8 +169,8 @@ public class ThetaMatrix {
 				List row = Matrix.get(i);
 				// 得到該行最大的概率值，返回index下标
 				int index = ldaVersionTopic.get(i);
-				fw.write(ldaVersion.get(i) + "," + index + "," + row.get(index)
-						+ "\n");
+				fw.write(ldaVersion.get(i) + "," + index + ","
+						+ ((index == -1) ? "none" : row.get(index)) + "\n");
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -174,8 +185,8 @@ public class ThetaMatrix {
 	}
 
 	// <T extends Comparable<? super T>>
-	private int getMaxIndex(List<Comparable> T) {
-		Object obj = T.get(0);
+	private int getMaxIndex(List<Double> T) {
+		Double obj = T.get(0);
 		int index = 0;
 		for (int i = 0; i < T.size(); i++) {
 			if (T.get(i).compareTo(T.get(index)) > 0)
@@ -185,10 +196,9 @@ public class ThetaMatrix {
 	}
 
 	public static void main(String arg[]) {
-		ThetaMatrix tm = new ThetaMatrix("model-final.theta",
-				"LDA_3_Version.txt");
+		ThetaMatrix tm = new ThetaMatrix("model-final.theta");
 		tm.readMatrixFromTheta();
-		tm.readLdaVersion();
+		tm.readLdaVersion("LdaUsersVersion_noInternet.txt", 0.8);
 		tm.outputLdaVersionTopics();
 	}
 }

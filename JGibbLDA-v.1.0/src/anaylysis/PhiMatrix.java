@@ -45,6 +45,7 @@ public class PhiMatrix {
 			while (line != null) {
 				String[] topicRatios = line.split(" ");
 				List row = new ArrayList<Double>();
+				// System.out.print(topicRatios.length + "  ");
 				for (int i = 0; i < topicRatios.length; i++) {
 					row.add(Double.parseDouble(topicRatios[i]));
 				}

@@ -54,15 +54,17 @@ public class UserMobileUser {
 		try {
 			lnr = new LineNumberReader(new FileReader(userMobileFileName));
 			String line = lnr.readLine();
-			HashMap<Integer, Double> row = new HashMap<Integer, Double>();
+			HashMap<Integer, Double> row;
+			testVersion = new ArrayList<String>();
 			while (line != null) {
 				String[] linePair = line.split(",");
 				testVersion.add(linePair[0]);
+				row = new HashMap<Integer, Double>();
 				for (int i = 1; i < linePair.length; i++) {
 					row.put(Integer.parseInt(linePair[i].split(":")[0]),
 							Double.parseDouble(linePair[i].split(":")[1]));
 				}
-				FeatureMatrx.add(row);
+				FeatureMatrx.add(row);		
 				line = lnr.readLine();
 			}
 		} catch (IOException e) {
