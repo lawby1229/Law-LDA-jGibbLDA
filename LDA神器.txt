@@ -17,4 +17,11 @@ LDA [options ...] [arguments...]
  -wordmap VAL : Specify the wordmap file
 
  
- 
+ 第一次训练
+-est -dir ./ -dfile newdocs.dat  -niters 500 -ntopics 2 -savestep 100 -twords 5
+迭代次数 500 聚类个数 2 每100次保存一次 每个topic下面5个词
+
+继续训练
+-estc -dir ./ -model model-001  -niters 200 -savestep 100 -twords 10
+wordmap other tassign 必须有，新的结果会同样命名为model-00100...
+可以没有data文件

@@ -1,5 +1,7 @@
-*.class
+﻿*.class
 JGibbLDA-v.1.0/models
 # Package Files #
 *.war
 *.ear
+*.txt
+*.class
