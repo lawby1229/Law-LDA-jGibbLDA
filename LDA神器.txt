@@ -25,3 +25,5 @@ LDA [options ...] [arguments...]
 -estc -dir ./ -model model-001  -niters 200 -savestep 100 -twords 10
 wordmap other tassign 必须有，新的结果会同样命名为model-00100...
 可以没有data文件
+
+-inf -dir ./ -model model-final -niters 30 -twords 20 -dfile newdocs.dat  

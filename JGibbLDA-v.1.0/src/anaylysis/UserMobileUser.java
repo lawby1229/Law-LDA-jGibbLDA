@@ -11,6 +11,7 @@ public class UserMobileUser {
 	private String userMobileFileName = "";// 保存用户特征的文件名
 	List<String> testVersion;// 保存每个用户的手机型号
 	List<HashMap<Integer, Double>> FeatureMatrx = null;// 保存用户的上网特征的哈希表
+	ThetaMatrix infThetaMatrix = null;// 保存用户的上网特征的哈希表
 
 	/**
 	 * @return the userMobileFileName
@@ -64,11 +65,29 @@ public class UserMobileUser {
 					row.put(Integer.parseInt(linePair[i].split(":")[0]),
 							Double.parseDouble(linePair[i].split(":")[1]));
 				}
-				FeatureMatrx.add(row);		
+				FeatureMatrx.add(row);
 				line = lnr.readLine();
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
+
+//	/**
+//	 * 先进性ldatopic-version文件的生成, 根据lda inf的规则的theta矩阵来判断结果
+//	 * 
+//	 * @param infThetaFileName
+//	 * @param ldaVersionTopicFile
+//	 * @return
+//	 */
+//	public double getPercisionInfLda(String infThetaFileName,
+//			String ldaVersionTopicFile) {
+//		infThetaMatrix = new ThetaMatrix(infThetaFileName);
+//		infThetaMatrix.readMatrixFromTheta();
+//		infThetaMatrix.readLdaVersion(ldaVersionTopicFile, 0.8, 0);
+//
+//		return 0;
+//
+//	}
+
 }

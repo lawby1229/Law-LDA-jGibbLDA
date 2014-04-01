@@ -17,6 +17,7 @@ public class ThetaMatrix {
 	private String thetaFileName;
 	private String ldaVersionFileName;
 	List<List<Double>> Matrix;
+	List<List<Double>> MatrixVertical;
 	List<String> ldaVersion;// 存储每一个手机型号的
 	List<Integer> ldaVersionTopic;// 存储每一个手机型号对应的topic的标示符的
 	// List<List<Double>> clusterCenter; // 存储每一个类的中心点的
@@ -119,10 +120,22 @@ public class ThetaMatrix {
 		}
 	}
 
+	public void getVerticalMatrix() {
+		MatrixVertical = new ArrayList<List<Double>>();
+		for (int i = 0; i < Matrix.get(0).size(); i++) {
+			List<Double> line = new ArrayList<Double>();
+			for (int j = 0; j < Matrix.size(); j++) {
+				line.add(Matrix.get(j).get(i));
+			}
+			MatrixVertical.add(line);
+		}
+	}
+
 	/**
 	 * 获取每行theta中matrix对应的手机型号,保存到versions中
 	 */
-	public void readLdaVersion(String LdaVersionFileName, double ramainRate) {
+	public void readLdaVersion(String LdaVersionFileName, double ramainRate,
+			int k) {
 		try {
 			LineNumberReader lnr = new LineNumberReader(new FileReader(
 					LdaVersionFileName));
@@ -137,18 +150,21 @@ public class ThetaMatrix {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		setVersion2TopicFromThetaMatrix(ramainRate);
+		if (k > 0)
+			setVersion2TopicFromCCenter(k);
+		else
+			setVersion2TopicFromThetaMatrix(ramainRate);
 		// 利用kmeans分类
-		// setVersion2TopicFromCCenter(4);
 
 	}
 
 	private void setVersion2TopicFromThetaMatrix(double ramainRate) {
 		ldaVersionTopic = new ArrayList<Integer>();
 		Version2Topic = new HashMap<String, Integer>();
+		int trainSet = 0;
 		for (int i = 0; i < Matrix.size(); i++) {
 			List<Double> row = Matrix.get(i);
-
+			trainSet++;
 			// 得到該行最大的概率值，返回index下标
 			int index = getMaxIndex(row);
 
@@ -162,6 +178,7 @@ public class ThetaMatrix {
 			}
 
 		}
+		System.out.println("theta matrix row：" + trainSet);
 	}
 
 	private void setVersion2TopicFromCCenter(int k) {
@@ -187,13 +204,14 @@ public class ThetaMatrix {
 
 		FileWriter fw = null;
 		try {
-			fw = new FileWriter("ldaVersion-Topic.csv");
+			fw = new FileWriter("3_Theta_ldaVersion-Topic.csv");
 			for (int i = 0; i < Matrix.size(); i++) {
 				List row = Matrix.get(i);
 				// 得到該行最大的概率值，返回index下标
 				int index = ldaVersionTopic.get(i);
-				fw.write(ldaVersion.get(i) + "," + index + ","
-						+ ((index == -1) ? "none" : row.get(index)) + "\n");
+				fw.write(ldaVersion.get(i) + "," + index
+				// + "," + ((index == -1) ? "none" : row.get(index))
+						+ "\n");
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -221,7 +239,7 @@ public class ThetaMatrix {
 	public static void main(String arg[]) {
 		ThetaMatrix tm = new ThetaMatrix("model-final.theta");
 		tm.readMatrixFromTheta();
-		tm.readLdaVersion("LdaUsersVersion_noInternet.txt", 0.8);
+		tm.readLdaVersion("LdaUsersVersion_noInternet.txt", 0.8, -1);
 		tm.outputLdaVersionTopics();
 	}
 }

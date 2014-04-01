@@ -1,5 +1,6 @@
 package anaylysis;
 
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -14,6 +15,17 @@ public class AnalysisResultLda {
 	PhiMatrix pMatrix = null;
 	ThetaMatrix tMatrix = null;
 	UserMobileUser uMobileUser = null;
+	FileWriter fwResult = null;
+
+	private void writeToFile(String str) {
+		try {
+			fwResult.append(str);
+			fwResult.flush();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 
 	/**
 	 * @return the pMatrix
@@ -36,22 +48,118 @@ public class AnalysisResultLda {
 		return uMobileUser;
 	}
 
-	public AnalysisResultLda(String phiFileName, String thetaFileName,
-			String userMobileFileName) {
-		pMatrix = new PhiMatrix(phiFileName);
-		tMatrix = new ThetaMatrix(thetaFileName);
-		uMobileUser = new UserMobileUser(userMobileFileName);
+	public AnalysisResultLda(String suff, String phiFileName,
+			String thetaFileName, String userMobileFileName) {
+		pMatrix = new PhiMatrix(suff + phiFileName);
+		tMatrix = new ThetaMatrix(suff + thetaFileName);
+		uMobileUser = new UserMobileUser(suff + userMobileFileName);
+		try {
+			fwResult = new FileWriter(new File(suff + "Persicion.txt"), false);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
-	public double getPercision() {
+	/**
+	 * 根据lda的inf的测试结果的theta矩阵求出预测
+	 * 
+	 * @param infThetaFileName
+	 * @return
+	 */
+	public double getLdaInfPercision(String infThetaFileName,
+			String infLdaVersionFileName) {
+		ThetaMatrix infMatrix = new ThetaMatrix(infThetaFileName);
+		infMatrix.readMatrixFromTheta();
+		infMatrix.readLdaVersion(infLdaVersionFileName, 0.5, 0);
+		int sum = 0;
+		int count = 0;
+		double Precision = 0;
+		int[] topicPrecisionSum = new int[infMatrix.Matrix.get(0).size()];
+		int[] topicRecallSum = new int[infMatrix.Matrix.get(0).size()];
+		int[] topicCorrect = new int[infMatrix.Matrix.get(0).size()];
+		// 算处理Precision和Recall
+		for (int i = 0; i < infMatrix.Matrix.size(); i++) {
+			// 小于域值就是-1都不要
+			int indexCorrect = this.tMatrix.Version2Topic
+					.get(infMatrix.ldaVersion.get(i));
+			if (indexCorrect == -1 || infMatrix.ldaVersionTopic.get(i) == -1)
+				continue;
+			if (indexCorrect == infMatrix.ldaVersionTopic.get(i)) {
+				count++;
+				topicCorrect[indexCorrect]++;
+			}
+			topicPrecisionSum[indexCorrect]++;
+			topicRecallSum[infMatrix.ldaVersionTopic.get(i)]++;
+			sum++;
+		}
+		// MAP Mean Avarange Precision
+		writeToFile("SMAP Inf\n");
+		System.out.print("SMAP Inf\n");
+		infMatrix.getVerticalMatrix();
+		List<Integer> indexs = new ArrayList<Integer>();// 每一个测试结果的排名
+		double Map = 0;// 保存MAP
+		for (int i = 0; i < infMatrix.MatrixVertical.size(); i++) {
+			for (int j = 0; j < infMatrix.MatrixVertical.get(i).size(); j++)
+				indexs.add(j);
+			// 测试矩阵按照概率高到低排名，得到indexs的列表
+			Tools.quickSortIndex(indexs, infMatrix.MatrixVertical.get(i), 0,
+					infMatrix.MatrixVertical.get(i).size() - 1);
+			int rank = 1;//排名，前10个中是该topic的样本
+			double AP[] = new double[infMatrix.MatrixVertical.size()];
+			for (int j = 1; j <= 10; j++) {//选取前10个样本测试排名
+				if (infMatrix.ldaVersionTopic.get(indexs.get(j - 1)) == i) {
+					AP[i] += rank / j;
+					rank++;
+				}
+			}
+			AP[i] = AP[i] / (rank - 1);
+			Map += AP[i];
+			writeToFile(AP[i] + " ");
+			System.out.print(AP[i] + " ");
+		}
+		Map = Map / infMatrix.MatrixVertical.size();
+		writeToFile("MAP=" + Map + "\n");
+		System.out.print("MAP=" + Map + "\n");
+
+		// writeToFile("Percision Inf\n");
+
+		// System.out.println(count + "/" + sum);
+		// writeToFile(count + "/" + sum);
+		for (int i = 0; i < topicPrecisionSum.length; i++) {
+			int subPrecision = (int) ((topicCorrect[i] / (double) topicPrecisionSum[i]) * 100);
+			System.out.print(i + ":" + topicCorrect[i] + "/"
+					+ topicPrecisionSum[i] + "=" + subPrecision + "% ");
+			writeToFile(i + ":" + topicCorrect[i] + "/" + topicPrecisionSum[i]
+					+ "=" + subPrecision + "% ");
+			int subRecall = (int) ((topicCorrect[i] / (double) topicRecallSum[i]) * 100);
+			System.out.print(i + ":" + topicCorrect[i] + "/"
+					+ topicRecallSum[i] + "=" + subRecall + "% ");
+			writeToFile(i + ":" + topicCorrect[i] + "/" + topicRecallSum[i]
+					+ "=" + subRecall + "% ");
+		}
+		Precision = count / (double) sum;
+		System.out.print("\nPercision=" + Precision + "\n");
+		writeToFile("\nPercision=" + Precision + "\n");
+		return Precision;
+	}
+
+	public double getPercision(int k) {
 
 		List<HashMap<Integer, Double>> FeatureMatrx = uMobileUser
 				.getFeatureMatrx();
 		int sumOfUser = 0;
 		int correctUser = 0;
 		List<List<Double>> phi = pMatrix.getMatrix();
-		int[] topicSum = new int[phi.size()];
-		int[] topicCorrect = new int[phi.size()];
+		int[] topicSum;
+		int[] topicCorrect;
+		if (k > 0) {
+			topicSum = new int[k];
+			topicCorrect = new int[k];
+		} else {
+			topicSum = new int[phi.size()];
+			topicCorrect = new int[phi.size()];
+		}
 		HashMap<String, Integer> version2topic = tMatrix.getVersion2Topic();
 		double phiMol[] = new double[phi.size()];
 		// 算出每个phi向量的摩尔
@@ -59,7 +167,7 @@ public class AnalysisResultLda {
 			phiMol[i] = getMol(phi.get(i));
 		}
 		try {
-			FileWriter fw = new FileWriter("result.csv");
+			FileWriter fw = new FileWriter("3_ANA_result.csv");
 			// 遍历测试的每个用户的特征向量
 			for (int i = 0; i < FeatureMatrx.size(); i++) {
 				// 单独一个人的特征向量的哈希
@@ -73,12 +181,14 @@ public class AnalysisResultLda {
 				// 需要根据词的分布来判断哪些文章会出现该话题
 				// 需要通过userFeature找到topic的k个维度的系数作为
 				// *******************用kmeans就不注释，不用就注释
-				// centerHostMatrix = multiMatrix(tMatrix.kmean.centers, phi);
+				if (k > 0)
+					centerHostMatrix = multiMatrix(tMatrix.kmean.centers, phi);
 				// 得到j这个topic和userfeature这个用户的相似度
 				for (int j = 0; j < centerHostMatrix.size(); j++) {
 					double cosValue;
 					cosValue = getCosListHash(centerHostMatrix.get(j),
-							getMol(centerHostMatrix.get(j)), userFeature);
+							getMol(centerHostMatrix.get(j)),
+							normalization(userFeature));
 					if (cosValue > maxCosValue) {
 						secCosIndex = maxCosIndex;
 						secCosValue = maxCosValue;
@@ -99,9 +209,10 @@ public class AnalysisResultLda {
 						+ secCosIndex + "," + secCosValue
 						// + ","+ userFeature
 						+ "\n");
-				// if
-				// (!version2topic.containsKey(uMobileUser.testVersion.get(i)))
-				// continue;
+				if (!version2topic.containsKey(uMobileUser.testVersion.get(i))) {
+					System.out.println(uMobileUser.testVersion.get(i));
+					continue;
+				}
 				int UserIndex = version2topic.get(uMobileUser.testVersion
 						.get(i));
 				// 该手机训练数据集没有
@@ -121,16 +232,21 @@ public class AnalysisResultLda {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		writeToFile("Percision Statistic\n");
 		double re = correctUser / (double) sumOfUser;
 		System.out.println(correctUser + "/" + sumOfUser);
+		writeToFile(correctUser + "/" + sumOfUser);
 		for (int i = 0; i < topicSum.length; i++)
 
 		{
 			int rate = (int) ((topicCorrect[i] / (double) topicSum[i]) * 100);
 			System.out.print(i + ":" + topicCorrect[i] + "/" + topicSum[i]
 					+ "=" + rate + "% ");
+			writeToFile(i + ":" + topicCorrect[i] + "/" + topicSum[i] + "="
+					+ rate + "% ");
 		}
 		System.out.println("\nPercision=" + re);
+		writeToFile("\nPercision=" + re + "\n");
 		return re;
 	}
 
@@ -199,15 +315,48 @@ public class AnalysisResultLda {
 		return result;
 	}
 
+	public List<Double> normalization(List<Double> l) {
+		List<Double> lre = new ArrayList<Double>();
+		double sum = 0;
+		for (int i = 0; i < l.size(); i++) {
+			sum += l.get(i);
+		}
+		for (int i = 0; i < l.size(); i++) {
+			lre.add(l.get(i) / sum);
+		}
+		return lre;
+	}
+
+	public HashMap<Integer, Double> normalization(HashMap<Integer, Double> hash) {
+		HashMap<Integer, Double> hashRe = new HashMap<Integer, Double>();
+		double sum = 0;
+		Iterator<Double> iValue = hash.values().iterator();
+		while (iValue.hasNext()) {
+			sum += iValue.next();
+		}
+		Iterator<Integer> iKey = hash.keySet().iterator();
+		while (iKey.hasNext()) {
+			int key = iKey.next();
+			hashRe.put(key, hash.get(key) / sum);
+		}
+		return hashRe;
+	}
+
 	public static void main(String arg[]) {
-		AnalysisResultLda ar = new AnalysisResultLda("model-final.phi",
-				"model-final.theta", "SameName_HostBehavior.txt");
+		String suff = "./152_lda_t2k_top10_70%/";
+		AnalysisResultLda ar = new AnalysisResultLda(suff, "model-final.phi",
+				"model-final.theta", "20_SameName_HostBehavior");
+		int k = 0;
 		ar.getpMatrix().readMatrixFromPhi();// 读取phi矩阵
 		ar.gettMatrix().readMatrixFromTheta();// 读取theta矩阵
-		ar.gettMatrix().readLdaVersion("LdaUsersVersion_noInternet.txt", 0.8);// 生成手机型号对应topic的哈希，以便根据用户手机得知应该属于哪个话题
+		ar.gettMatrix().readLdaVersion(
+				suff + "1_LdaUsersVersion_noInternet_2k", 0.8, k);// 生成手机型号对应topic的哈希，以便根据用户手机得知应该属于哪个话题
 		ar.gettMatrix().outputLdaVersionTopics();// 输出手机型号对应什么话题的文件
 		ar.getuMobileUser().readTestUserMobileFeature();// 读取用户的上网行为的特征文件
-		ar.getPercision();// 计算正确率
+		ar.getPercision(k);// 计算正确率
+		ar.getLdaInfPercision(suff
+				+ "211_SameName_HostBehavior_lda-data.model-final.theta", suff
+				+ "210_SameName_HostBehavior_lda-version");
 
 	}
 }
